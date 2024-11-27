@@ -34,119 +34,103 @@ make a key in the background corasponding to they origanal charector and the ord
 
 """
 
+from io import BytesIO
+import random, os, base64, re
+
+from PIL import Image
 
 
-from PIL import Image, ImageDraw 
-import random, os
+class customCaptcha:
+    def __init__(self, charector_image_path: str):
+        
+        self.charector_image_path = charector_image_path
+        self.width = 320
+        self.height = 320
+        self.new_gray = self.newGray()
+        self.catchaImage = Image.new("RGBA", (self.width, self.height), self.new_gray) 
+        self.catchaImage.convert("RGBA")
 
-
-
-
-def random_image(background_color)  -> tuple[str, int]:
-    #image_path = [f"charectors/{img}" for img in os.listdir("charectors/")]
-    image_path = [f"{img}" for img in os.listdir() if img.endswith("png")]
-    file_name = image_path[random.randint(0, len(image_path) - 1)]
-    random_img = Image.open(file_name)
-    random_img.convert("RGBA")
-
-    #add slight rotation
-    random_img = random_img.rotate(random.randint(-30,30))
-
-    #resize the images a little
-    (width, height) = (random_img.width + random.randint(-8,16), random_img.height + random.randint(-8,16))
-    random_img = random_img.resize((width, height))
-
-
-    #Create new images in memory, Access the pixel data of the image
-    pixels = list(random_img.getdata())
-    modified_pixels = [background_color if pixel == (0, 0, 0, 0) else pixel for pixel in pixels]
-
-    modified_image = Image.new("RGBA", random_img.size)
-    modified_image.putdata(modified_pixels)
-
-
-
-
-    return file_name, modified_image#random_img
-
-
-
-
-def point_avrages(p1: tuple[int, int], p2: tuple[int, int]):
-    #get the avreg of the X's
-    avrgX = (p1[0] + p2[0]) / 2
-
-    #get the arveg of the Y's
-    avrgY = (p1[1] + p2[1]) / 2
+    def newGray(self) -> tuple[int, int, int]:
+        return (random.randint(192,200),random.randint(192,222),random.randint(196,205))
     
 
-    return (int(avrgX), int(avrgY))
- 
+    def point_avrages(self, p1: tuple[int, int], p2: tuple[int, int]):
+        avrgX = (p1[0] + p2[0]) / 2#get the avreg of the X's
+        avrgY = (p1[1] + p2[1]) / 2#get the arveg of the Y's
+        return (int(avrgX), int(avrgY))
+    
+
+    def random_image(self)  -> tuple[str, int]:
+        image_path = [f"{os.path.join(self.charector_image_path,img)}" for img in os.listdir(self.charector_image_path) if img.endswith("png")]
+        file_name = image_path[random.randint(0, len(image_path) - 1)]
+        random_img = Image.open(file_name)
+        random_img.convert("RGBA")
+
+        #add slight rotation
+        random_img = random_img.rotate(random.randint(-30,30))
+
+        #resize the images a little
+        (width, height) = (random_img.width + random.randint(-8,16), random_img.height + random.randint(-8,16))
+        random_img = random_img.resize((width, height))
 
 
+        #Create new images in memory, Access the pixel data of the image
+        pixels = list(random_img.getdata())
+        modified_pixels = [self.new_gray if pixel == (0, 0, 0, 0) else pixel for pixel in pixels]
 
-#point_avrages((-2, 0), (4, 2))
+        modified_image = Image.new("RGBA", random_img.size)
+        modified_image.putdata(modified_pixels)
 
+        image_key = re.findall("(?<=testing\/captcha\/)(.*)(?=.png)", file_name)[0]
+        if image_key == "UP":
+            image_key = "P"
 
+        return image_key, modified_image
+    
+    def drawInvisibleLine(self, between_height: tuple[int, int]) -> list[str]:
+        line_width_start = 0
+        line_width_segment = round(self.width / 15)
+        files_keys = []
+        skip_first_line_point = 0
+        ran_starting_line_heigh = random.randint(between_height[0], between_height[1])
+        for num in range(0, 15):
+            ran_ending_line_height = random.randint(between_height[0], between_height[1])
 
+            if num % 3 == 0:
+                if skip_first_line_point != 0:
 
-def draw_line(image_object ,between_height: tuple[int, int], background_color) -> list[str]:
-    line_width_start = 0
+                    img_key, obfuscated_image = self.random_image()
+                    files_keys.append(img_key)
 
-    line_width_end = 320#220
+                    #obfuscated_image = obfuscated_image.convert("RGBA")
 
-    line_w_seg = round(320 / 15)#round(220 / 15)
+                    self.catchaImage.paste(obfuscated_image, box=self.point_avrages((line_width_start, ran_starting_line_heigh), (line_width_start+line_width_segment, ran_ending_line_height)), mask=obfuscated_image)
 
-    three_random_points = []
-    files_keys = []
-    temp = 0
-    ran_starting_line_heigh = random.randint(between_height[0], between_height[1])
-    for num in range(0, 15):
+                    #image_object.save(image_object, 'PNG')
+                else:
+                    skip_first_line_point += 1
 
-        ran_ending_line_height = random.randint(between_height[0], between_height[1])
-        ran_line = [(line_width_start, ran_starting_line_heigh), (line_width_start+line_w_seg, ran_ending_line_height)]#[(w, h), (w, h)]
-
-        #if odd number
-        if num % 3 == 0:
-            if temp != 0:
-
-                img_key, obfuscated_image = random_image(background_color)
-                files_keys.append(img_key.strip(".png"))
-                three_random_points.append(point_avrages((line_width_start, ran_starting_line_heigh), (line_width_start+line_w_seg, ran_ending_line_height)))
-                #image_object.text(point_avrages((line_width_start, ran_starting_line_heigh), (line_width_start+line_w_seg, ran_ending_line_height)), "A", font_size=29)
-                #image_object.paste(random_image(), point_avrages((line_width_start, ran_starting_line_heigh), (line_width_start+line_w_seg, ran_ending_line_height)))
-                image_object.paste(obfuscated_image, box=point_avrages((line_width_start, ran_starting_line_heigh), (line_width_start+line_w_seg, ran_ending_line_height)))
-            else:
-                temp += 1
-
-
-        ran_starting_line_heigh = ran_ending_line_height
-
-        #img1 can draw lines
-        #image_object.line(ran_line)
-
-        line_width_start += line_w_seg
-
-    return files_keys
-
-def random_gray():
-    return (random.randint(192,200),random.randint(192,222),random.randint(196,205))
-
-w, h = 320, 320#220
-
-new_grey = random_gray()
-img = Image.new("RGBA", (w, h), new_grey) 
-img.convert("RGBA")
-img1 = ImageDraw.Draw(img)   
+            ran_starting_line_heigh = ran_ending_line_height
+            line_width_start += line_width_segment
 
 
-level1 = draw_line(img, (20,100), new_grey)
+        return files_keys
+    
 
-level2 = draw_line(img, (140,220), new_grey)
+    def newCaptch(self) -> str| bytes:
+        
 
-level3 = draw_line(img, (240,290), new_grey)
-img.show() 
+        level1 = self.drawInvisibleLine((20,100))
+        level2 = self.drawInvisibleLine((140,220))
+        level3 = self.drawInvisibleLine((240,290))
 
-print(level1 + level2 + level3)
+        # Save the image to a BytesIO object
+        img_io = BytesIO()
+        self.catchaImage.save(img_io, 'PNG')
+        img_io.seek(0)
+
+        return ''.join(level1 + level2 + level3), base64.b64encode(img_io.getvalue()).decode('utf-8')
 
 
+botDetectionCaptcha = customCaptcha(".")
+answare, new_image = botDetectionCaptcha.newCaptch()
