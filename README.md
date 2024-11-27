@@ -1,6 +1,6 @@
 # This is a CAPTCHA made with the python module PIL
 
-## This is for a website I'm making so I dont have to worrie about bots.
+## This is for a website I'm making so I dont have to worry about bots.
 
 
 ## How to solve it?
