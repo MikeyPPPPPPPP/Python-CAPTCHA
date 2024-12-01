@@ -13,5 +13,5 @@ There are 3 horizontal lines that have four charectors each, you need to combine
 botDetectionCaptcha = customCaptcha(".")
 answare, new_image = botDetectionCaptcha.newCaptch()
 ```
-
+![alt text](https://github.com/MikeyPPPPPPPP/Python-CAPTCHA/blob/main/cap.png)
 
